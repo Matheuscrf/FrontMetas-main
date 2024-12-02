@@ -1,7 +1,7 @@
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import metas from '../assets/metas.png'
 
 interface User {
@@ -15,24 +15,30 @@ interface User {
 interface LoginProps {
   onSignupClick: () => void
   onLoginSuccess: (user: User) => void
-  users: User[]
 }
 
-export default function Login({
-  onSignupClick,
-  onLoginSuccess,
-  users,
-}: LoginProps) {
+export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [users, setUsers] = useState<User[]>([])
+
+  useEffect(() => {
+    // Carregar usuários do localStorage na inicialização
+    const storedUsers = JSON.parse(localStorage.getItem('users') || '[]')
+    setUsers(storedUsers)
+  }, [])
 
   const handleLogin = () => {
     const user = users.find(u => u.email === email && u.password === password)
     if (user) {
-      onLoginSuccess(user) // Passa o usuário autenticado
+      // Salva o usuário no localStorage
+      localStorage.setItem('user', JSON.stringify(user))
+
+      // Chama a função para passar o usuário autenticado
+      onLoginSuccess(user)
     } else {
-      setError('Invalid email or password')
+      setError('Email ou senha inválidos')
     }
   }
 

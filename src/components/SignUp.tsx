@@ -1,7 +1,7 @@
+import { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { useState } from 'react'
 import metas from '../assets/metas.png'
 
 interface SignUpProps {
@@ -23,6 +23,14 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
   const [phone, setPhone] = useState('')
   const [cpf, setCpf] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting] = useState(false)
+
+  // useEffect(() => {
+  //   // Limpar o localStorage quando a página for recarregada
+  //   window.onbeforeunload = () => {
+  //     localStorage.clear()
+  //   }
+  // }, [])
 
   const handleSignup = () => {
     if (
@@ -56,7 +64,20 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
       return
     }
 
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]')
+
+    // Verificar se o email já está cadastrado
+    if (existingUsers.some((user: { email: string }) => user.email === email)) {
+      setError('Email is already registered')
+      return
+    }
+
     const newUser = { fullName, email, phone, cpf, password }
+
+    // Salvar o novo usuário no localStorage
+    existingUsers.push(newUser)
+    localStorage.setItem('users', JSON.stringify(existingUsers))
+
     onUserSignup(newUser)
     alert('Cadastro realizado com sucesso!')
     resetFields()
@@ -66,8 +87,9 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
     }, 2000)
   }
 
+
   const validateCPF = (cpfInput: string) => {
-    const cpf = cpfInput.replace(/\D/g, '')
+    const cpf = cpfInput.replace(/\D/g, '') // Remove qualquer caractere não numérico
     if (cpf.length !== 11) return false
 
     let sum = 0
@@ -112,7 +134,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
 
   const formatPhone = (value: string) => {
     const formattedValue = value
-      .replace(/\D/g, '')
+      .replace(/\D/g, '') // Remove caracteres não numéricos
       .replace(/^(\d{2})(\d)/, '($1) $2')
       .replace(/(\d)(\d{4})$/, '$1-$2')
       .replace(/-(\d{4})$/, '$1')
@@ -124,7 +146,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
 
   const formatCPF = (value: string) => {
     const formattedValue = value
-      .replace(/\D/g, '')
+      .replace(/\D/g, '') // Remove caracteres não numéricos
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d)/, '$1-$2')
@@ -232,8 +254,9 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
                 size="default"
                 className="w-full"
                 type="submit"
+                disabled={isSubmitting}
               >
-                Sign Up
+                {isSubmitting ? 'Signing up...' : 'Sign Up'}
               </Button>
             </div>
             <p className="mt-6 text-center text-sm text-gray-500">
