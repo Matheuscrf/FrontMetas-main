@@ -1,38 +1,27 @@
-import { useState } from 'react'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Label } from './ui/label'
-import metas from '../assets/metas.png'
+import { useState } from "react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import metas from "../assets/metas.png";
 
 interface SignUpProps {
-  onLoginClick: () => void
-  onUserSignup: (user: {
-    fullName: string
-    email: string
-    phone: string
-    cpf: string
-    password: string
-  }) => void
+  onLoginClick: () => void;
+  onUserSignup: () => void;
 }
 
-export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [cpf, setCpf] = useState('')
-  const [error, setError] = useState('')
-  const [isSubmitting] = useState(false)
+export default function SignUp({ onLoginClick }: SignUpProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // useEffect(() => {
-  //   // Limpar o localStorage quando a página for recarregada
-  //   window.onbeforeunload = () => {
-  //     localStorage.clear()
-  //   }
-  // }, [])
+  const handleSignup = async () => {
+    if (isSubmitting) return;
 
-  const handleSignup = () => {
     if (
       !fullName ||
       !email ||
@@ -41,120 +30,113 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
       !password ||
       !confirmPassword
     ) {
-      setError('All fields are required')
-      return
+      setError("All fields are required");
+      return;
     }
-    setError('')
 
-    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{8,}$/
+    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{8,}$/;
     if (!passwordPattern.test(password)) {
       setError(
-        'Password must be at least 8 characters long and include letters, numbers, and special characters.'
-      )
-      return
+        "Password must be at least 8 characters long and include letters, numbers, and special characters."
+      );
+      return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
+      setError("Passwords do not match");
+      return;
     }
 
     if (!validateCPF(cpf)) {
-      setError('Invalid CPF')
-      return
+      setError("Invalid CPF");
+      return;
     }
 
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]')
+    // Mapeando `fullName` para `name` conforme esperado pelo backend
+    const newUser = {
+      name: fullName,
+      email,
+      phone,
+      cpf,
+      password,
+    };
 
-    // Verificar se o email já está cadastrado
-    if (existingUsers.some((user: { email: string }) => user.email === email)) {
-      setError('Email is already registered')
-      return
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("http://localhost:3333/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newUser),
+      });
+
+      if (response.ok) {
+        alert("Cadastro realizado com sucesso!");
+        resetFields();
+        onLoginClick();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || "Failed to create user");
+      }
+    } catch (error) {
+      setError("An unexpected error occurred. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    const newUser = { fullName, email, phone, cpf, password }
+  const validateCPF = (cpfInput: string): boolean => {
+    const cpf = cpfInput.replace(/\D/g, "");
+    if (cpf.length !== 11) return false;
 
-    // Salvar o novo usuário no localStorage
-    existingUsers.push(newUser)
-    localStorage.setItem('users', JSON.stringify(existingUsers))
-
-    onUserSignup(newUser)
-    alert('Cadastro realizado com sucesso!')
-    resetFields()
-
-    setTimeout(() => {
-      onLoginClick()
-    }, 2000)
-  }
-
-
-  const validateCPF = (cpfInput: string) => {
-    const cpf = cpfInput.replace(/\D/g, '') // Remove qualquer caractere não numérico
-    if (cpf.length !== 11) return false
-
-    let sum = 0
-    let remainder: number
+    let sum = 0;
+    let remainder: number;
 
     for (let i = 1; i <= 9; i++) {
-      sum += Number.parseInt(cpf.charAt(i - 1)) * (11 - i)
+      sum += Number.parseInt(cpf.charAt(i - 1)) * (11 - i);
     }
 
-    remainder = (sum * 10) % 11
-    if (remainder === 10 || remainder === 11) {
-      remainder = 0
-    }
-    if (remainder !== Number.parseInt(cpf.charAt(9))) {
-      return false
-    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== Number.parseInt(cpf.charAt(9))) return false;
 
-    sum = 0
+    sum = 0;
     for (let i = 1; i <= 10; i++) {
-      sum += Number.parseInt(cpf.charAt(i - 1)) * (12 - i)
+      sum += Number.parseInt(cpf.charAt(i - 1)) * (12 - i);
     }
 
-    remainder = (sum * 10) % 11
-    if (remainder === 10 || remainder === 11) {
-      remainder = 0
-    }
-    if (remainder !== Number.parseInt(cpf.charAt(10))) {
-      return false
-    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== Number.parseInt(cpf.charAt(10))) return false;
 
-    return true
-  }
+    return true;
+  };
 
   const resetFields = () => {
-    setEmail('')
-    setPassword('')
-    setFullName('')
-    setPhone('')
-    setCpf('')
-    setConfirmPassword('')
-  }
+    setEmail("");
+    setPassword("");
+    setFullName("");
+    setPhone("");
+    setCpf("");
+    setConfirmPassword("");
+    setError("");
+  };
 
   const formatPhone = (value: string) => {
-    const formattedValue = value
-      .replace(/\D/g, '') // Remove caracteres não numéricos
-      .replace(/^(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d)(\d{4})$/, '$1-$2')
-      .replace(/-(\d{4})$/, '$1')
-
-    return formattedValue.length <= 14
-      ? formattedValue
-      : formattedValue.slice(0, 14)
-  }
+    return value
+      .replace(/\D/g, "")
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d)(\d{4})$/, "$1-$2");
+  };
 
   const formatCPF = (value: string) => {
-    const formattedValue = value
-      .replace(/\D/g, '') // Remove caracteres não numéricos
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1-$2')
-
-    return formattedValue.length <= 14
-      ? formattedValue
-      : formattedValue.slice(0, 14)
-  }
+    return value
+      .replace(/\D/g, "")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1-$2");
+  };
 
   return (
     <div className="flex h-screen">
@@ -170,9 +152,9 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
           {error && <p className="text-red-500 text-center">{error}</p>}
           <form
             className="space-y-6"
-            onSubmit={e => {
-              e.preventDefault()
-              handleSignup()
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSignup();
             }}
           >
             <div>
@@ -180,7 +162,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
               <Input
                 id="fullName"
                 value={fullName}
-                onChange={e => setFullName(e.target.value)}
+                onChange={(e) => setFullName(e.target.value)}
                 required
                 placeholder="Enter your full name"
                 className="w-full bg-zinc-800 text-white placeholder-zinc-400"
@@ -192,7 +174,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
                 id="email"
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="Enter your email"
                 className="w-full bg-zinc-800 text-white placeholder-zinc-400"
@@ -203,7 +185,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
               <Input
                 id="phone"
                 value={phone}
-                onChange={e => setPhone(formatPhone(e.target.value))}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
                 required
                 placeholder="Enter your phone number"
                 maxLength={15}
@@ -215,7 +197,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
               <Input
                 id="cpf"
                 value={cpf}
-                onChange={e => setCpf(formatCPF(e.target.value))}
+                onChange={(e) => setCpf(formatCPF(e.target.value))}
                 required
                 placeholder="Enter your CPF"
                 maxLength={14}
@@ -229,7 +211,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Create a password"
                   className="w-full bg-zinc-800 text-white placeholder-zinc-400"
@@ -241,7 +223,7 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   placeholder="Confirm your password"
                   className="w-full bg-zinc-800 text-white placeholder-zinc-400"
@@ -256,11 +238,11 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Signing up...' : 'Sign Up'}
+                {isSubmitting ? "Signing up..." : "Sign Up"}
               </Button>
             </div>
             <p className="mt-6 text-center text-sm text-gray-500">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <button
                 type="button"
                 onClick={onLoginClick}
@@ -273,5 +255,5 @@ export default function SignUp({ onLoginClick, onUserSignup }: SignUpProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
