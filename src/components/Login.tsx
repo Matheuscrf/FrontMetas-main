@@ -11,6 +11,7 @@ interface User {
   email: string;
   password: string;
   role: string;
+  cpf: string; // Adicione o campo CPF aqui
 }
 
 interface LoginProps {
@@ -22,6 +23,57 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cpf, setCpf] = useState("");
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCpf(e.target.value);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const response = await fetch("http://localhost:3333/users", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao carregar usuários");
+      }
+
+      const data = await response.json();
+      console.log("Resposta da API:", data);
+
+      if (Array.isArray(data.users)) {
+        const user = data.users.find((u: User) => u.email === email);
+
+        if (user) {
+          const isCpfValid = bcrypt.compareSync(cpf, user.cpf);
+
+          if (isCpfValid) {
+            handleCloseModal();
+            onLoginSuccess(user);
+          } else {
+            setError("CPF inválido");
+          }
+        } else {
+          setError("Usuário não encontrado");
+        }
+      } else {
+        setError("A resposta da API não contém um array de usuários");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro ao fazer login";
+      setError(errorMessage);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -39,19 +91,14 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
       const data = await response.json();
       console.log("Resposta da API:", data);
 
-      // Verifica se a chave 'users' existe e é um array
       if (Array.isArray(data.users)) {
-        // Encontrar o usuário baseado no email
         const user = data.users.find((u: User) => u.email === email);
 
         if (user) {
-          // Comparar a senha fornecida com a senha criptografada no banco de dados
           const isPasswordValid = bcrypt.compareSync(password, user.password);
 
           if (isPasswordValid) {
-            // Armazenar o ID do usuário no localStorage
-            localStorage.setItem("userId", user.id);
-            onLoginSuccess(user);
+            setIsModalOpen(true);
           } else {
             setError("Email ou senha inválidos");
           }
@@ -110,11 +157,46 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
                 variant="primary"
                 size="default"
                 className="w-full"
+                type="button"
                 onClick={handleLogin}
               >
                 Login
               </Button>
             </div>
+            {isModalOpen && (
+              <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
+                <div className="bg-white p-6 rounded shadow-lg">
+                  <h2 className="text-xl mb-4 text-black">
+                    Digite seu CPF para continuar
+                  </h2>
+                  <label className="block mb-2 text-black">
+                    CPF:
+                    <input
+                      type="text"
+                      value={cpf}
+                      onChange={handleCpfChange}
+                      className="border p-2 w-full"
+                    />
+                  </label>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={handleCloseModal}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={handleSubmit}
+                    >
+                      Confirmar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             <p className="mt-6 text-center text-sm text-gray-500">
               Don't have an account?{" "}
               <button

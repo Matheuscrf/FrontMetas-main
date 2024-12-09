@@ -9,11 +9,11 @@ import Login from "./components/Login";
 import SignUp from "./components/SignUp";
 import HomePage from "./components/home-page";
 import { Header } from "./components/ui/header";
-import { AdminPage } from "./components/AdminPage" // Nova página para Admin
+import { AdminPage } from "./components/AdminPage"; // Nova página para Admin
 
 interface User {
   id: string;
-  fullName: string;
+  name: string;
   email: string;
   phone: string;
   cpf: string;
