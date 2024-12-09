@@ -11,7 +11,6 @@ interface User {
   email: string;
   password: string;
   role: string;
-  cpf: string; // Adicione o campo CPF aqui
 }
 
 interface LoginProps {
@@ -24,10 +23,10 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cpf, setCpf] = useState("");
+  const [confirmationEmail, setConfirmationEmail] = useState<string>("");
 
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCpf(e.target.value);
+  const handleConfirmationEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setConfirmationEmail(e.target.value);
   };
 
   const handleCloseModal = () => {
@@ -35,6 +34,11 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
   };
 
   const handleSubmit = async () => {
+    if (confirmationEmail !== email) {
+      setError("Emails não correspondem");
+      return;
+    }
+
     try {
       const response = await fetch("http://localhost:3333/users", {
         method: "GET",
@@ -54,14 +58,8 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
         const user = data.users.find((u: User) => u.email === email);
 
         if (user) {
-          const isCpfValid = bcrypt.compareSync(cpf, user.cpf);
-
-          if (isCpfValid) {
-            handleCloseModal();
-            onLoginSuccess(user);
-          } else {
-            setError("CPF inválido");
-          }
+          handleCloseModal();
+          onLoginSuccess(user);
         } else {
           setError("Usuário não encontrado");
         }
@@ -167,14 +165,14 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
               <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75">
                 <div className="bg-white p-6 rounded shadow-lg">
                   <h2 className="text-xl mb-4 text-black">
-                    Digite seu CPF para continuar
+                    Confirme seu email para continuar
                   </h2>
                   <label className="block mb-2 text-black">
-                    CPF:
+                    Email:
                     <input
-                      type="text"
-                      value={cpf}
-                      onChange={handleCpfChange}
+                      type="email"
+                      value={confirmationEmail}
+                      onChange={handleConfirmationEmailChange}
                       className="border p-2 w-full"
                     />
                   </label>
@@ -197,16 +195,16 @@ export default function Login({ onSignupClick, onLoginSuccess }: LoginProps) {
                 </div>
               </div>
             )}
-            <p className="mt-6 text-center text-sm text-gray-500">
-              Don't have an account?{" "}
-              <button
-                type="button"
-                onClick={onSignupClick}
-                className="font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none cursor-pointer"
-              >
-                Sign Up here
-              </button>
-            </p>
+              <p className="mt-6 text-center text-sm text-gray-500">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  onClick={onSignupClick}
+                  className="font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none cursor-pointer"
+                >
+                  Sign Up here
+                </button>
+              </p>
           </form>
         </div>
       </div>
